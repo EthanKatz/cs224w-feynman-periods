@@ -1,0 +1,24 @@
+# Python environment and caches
+.venv/
+__pycache__/
+*.pyc
+*.nbi
+*.nbc
+
+# Data: too large for GitHub; re-download with code/download_data.sh
+data/
+
+# Course handouts (not ours to redistribute)
+CS 224W Course Project 2026.docx.pdf
+Project grading rubric.pdf
+
+# LaTeX build artifacts
+milestone/*.aux
+milestone/*.log
+milestone/*.out
+milestone/*.bbl
+milestone/*.blg
+milestone/*.synctex.gz
+
+# macOS
+.DS_Store
