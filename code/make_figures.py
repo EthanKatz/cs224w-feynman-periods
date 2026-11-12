@@ -69,8 +69,8 @@ def latex_table(s, base):
                 cells.append("--")
                 continue
             r = r.iloc[0]
-            cells.append(f"{100*r.test_mrel_mean:.1f} $\\pm$ {100*np.nan_to_num(r.test_mrel_std):.1f}"
-                         f" & {r.test_r2_within_mean:.3f}")
+            cells.append(f"{100*r.test_mrel_mean:.2f} $\\pm$ {100*np.nan_to_num(r.test_mrel_std):.2f}"
+                         f" & {r.test_r2_within_mean:.4f}")
         lines.append(f"{FEAT_NAMES[f]} & " + " & ".join(cells) + r" \\")
     with open(os.path.join(ROOT, "milestone", "table_main.tex"), "w") as fh:
         fh.write("\n".join(lines) + "\n")
@@ -81,7 +81,7 @@ def latex_table(s, base):
                  "ridge_cycles_hepp": "Ridge on $L$ + cycles + Hepp$^\\dagger$"}
         for k, n in names.items():
             t = base[k]["test"]
-            fh.write(f"{n} & {100*t['mrel']:.1f} & {t['r2_within']:.3f} \\\\\n")
+            fh.write(f"{n} & {100*t['mrel']:.2f} & {t['r2_within']:.4f} \\\\\n")
 
 
 def fig_data_overview():
@@ -185,20 +185,20 @@ def extrap_table():
     """LaTeX rows for the extrapolation experiment (train L<=11, test L=12)."""
     base = json.load(open(os.path.join(ROOT, "results", "baselines_extrap.json")))
     lines = [r"Linear regression on $L$ & " + f"{100*base['linear_L']['test']['mrel']:.1f} & "
-             f"{base['linear_L']['test']['r2_within']:.3f} \\\\",
+             f"{base['linear_L']['test']['r2_within']:.4f} \\\\",
              r"Ridge on $L$ + graph-level cycle counts & " +
              f"{100*base['ridge_cycles']['test']['mrel']:.1f} & "
-             f"{base['ridge_cycles']['test']['r2_within']:.3f} \\\\",
+             f"{base['ridge_cycles']['test']['r2_within']:.4f} \\\\",
              r"Ridge on $L$ + $\log$ Hepp bound$^\dagger$ & " +
              f"{100*base['ridge_hepp']['test']['mrel']:.2f} & "
-             f"{base['ridge_hepp']['test']['r2_within']:.3f} \\\\", r"\midrule"]
+             f"{base['ridge_hepp']['test']['r2_within']:.4f} \\\\", r"\midrule"]
     rows = []
     for p in sorted(glob.glob(os.path.join(ROOT, "results", "runs", "*_extrap.json"))):
         r = json.load(open(p)); c = r["config"]
         rows.append((c["model"], c["features"], r["test"]["mrel"], r["test"]["r2_within"]))
     order = {m: i for i, m in enumerate(["gcn", "sage", "gin"])}
     for m, f, e, r2 in sorted(rows, key=lambda t: (FEATS.index(t[1]), order[t[0]])):
-        lines.append(f"{NAMES[m]} + {FEAT_NAMES[f]} & {100*e:.1f} & {r2:.3f} \\\\")
+        lines.append(f"{NAMES[m]} + {FEAT_NAMES[f]} & {100*e:.2f} & {r2:.4f} \\\\")
     with open(os.path.join(ROOT, "milestone", "table_extrap.tex"), "w") as fh:
         fh.write("\n".join(lines) + "\n")
     print("\n".join(lines))

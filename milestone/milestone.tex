@@ -12,6 +12,7 @@
 \usepackage{xcolor}
 \setcitestyle{authoryear,round}
 \setlength{\parskip}{0.3em}
+\makeatletter\newcommand{\tabinput}[1]{\@@input #1 }\makeatother % \input usable inside tabular
 
 \title{Predicting Feynman Periods with Graph Neural Networks\\[0.3em]\large Project Milestone}
 \date{}
@@ -157,11 +158,11 @@ explained (0 for the linear-in-$L$ baseline).
 
 \section*{4\quad Preliminary Results}
 
-\RESULTS
+\input{results_section}
 
 \section*{5\quad Next Steps}
 
-\NEXTSTEPS
+\input{nextsteps_section}
 
 \bibliographystyle{plainnat}
 \begin{thebibliography}{99}\small

@@ -22,3 +22,6 @@ milestone/*.synctex.gz
 
 # macOS
 .DS_Store
+
+# Scratch files
+milestone/_test.*

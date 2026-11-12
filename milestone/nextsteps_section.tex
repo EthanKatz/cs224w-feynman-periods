@@ -1,0 +1,25 @@
+\begin{itemize}\setlength\itemsep{0.1em}
+\item \textbf{More data and larger $L$.} Add the complete $L=13$ set (94\,MB compressed) and the
+$14\le L\le18$ samples. Because those samples are non-uniform, we will evaluate them per loop order
+and report how error grows with $L$, which is the regime where cheap predictors matter most.
+\item \textbf{Extrapolation.} Make training on low $L$ and testing on high $L$ a primary benchmark
+(train $\le 12$, test 13; train $\le 13$, test 14--18), and study which features stay calibrated
+across sizes (cycle counts grow with $L$ and may need per-$L$ normalization).
+\item \textbf{Richer and more principled structural features.} Use longer cycle lengths and per-edge
+cycle counts as edge features, sign- and basis-invariant Laplacian encodings (e.g.\ SignNet), and
+subgraph-count features motivated by graph-theoretic invariants of periods (vertex cuts, Martin
+invariants). We will also compare a pure ``set of node features'' model (DeepSets, no message
+passing) to isolate what message passing adds.
+\item \textbf{Ablations and tuning.} Sweep depth, width and pooling, train longer, use 5 seeds,
+and examine per-length cycle-feature importance (dropping one cycle length at a time) as an
+explainability analysis of which cycles determine the period.
+\item \textbf{Cost.} Measure end-to-end wall-clock time per graph for our features + GNN against
+the Hepp bound and against numerical integration, so that the accuracy/speed trade-off is explicit.
+\item \textbf{Deliverables.} Port the pipeline (already modular and documented in \texttt{code/})
+into a single Colab notebook and write the Medium blog post with these figures and PyG code snippets.
+\end{itemize}
+
+\paragraph{Code.} All code for this milestone is in \texttt{code/}: \texttt{data.py} (download
+format, parsing, features, grouped splits), \texttt{models.py}, \texttt{train.py},
+\texttt{baselines.py}, \texttt{make\_figures.py}, and shell scripts that reproduce every number in
+this report.

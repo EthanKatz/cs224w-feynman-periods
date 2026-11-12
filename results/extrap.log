@@ -1,0 +1,4 @@
+gcn_cycle_s0_extrap.json: test mae_log=0.7626 mrel=0.5272 r2_within=-1.087 (142s)
+gcn_rwse_s0_extrap.json: test mae_log=0.2561 mrel=0.3048 r2_within=0.702 (143s)
+gcn_cycle+lap+rwse_s0_extrap.json: test mae_log=0.5961 mrel=0.4415 r2_within=-0.310 (144s)
+gcn_label_s0_extrap.json: test mae_log=0.5832 mrel=0.4097 r2_within=-0.589 (145s)
