@@ -165,7 +165,7 @@ def fig_scatter(df, base):
 
 def fig_curves(df):
     """Validation curves for GIN with each feature set (seed 0)."""
-    fig, ax = plt.subplots(figsize=(3.2, 2.4))
+    fig, ax = plt.subplots(figsize=(6.0, 2.2))
     sub = df[(df.model == "gin") & (df.seed == 0)]
     styles = {"const": (MUTED, "--"), "perm": (MUTED, ":"), "label": (COLORS["sage"], "--"), "cycle": (COLORS["gin"], "-"),
               "cycle+lap": (COLORS["gcn"], "-")}
@@ -176,7 +176,9 @@ def fig_curves(df):
         h = json.load(open(r.iloc[0].path))["history"]
         ax.plot([e["val_mae_log"] for e in h], color=c, ls=ls, lw=1.5, label=FEAT_NAMES[f])
     ax.set_yscale("log"); ax.set_xlabel("epoch"); ax.set_ylabel(r"val MAE of $\log\mathcal{P}$")
-    ax.grid(color=GRID, lw=0.6, which="both"); ax.legend(frameon=False, fontsize=7)
+    ax.grid(color=GRID, lw=0.6, which="major"); ax.set_axisbelow(True)
+    ax.yaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
+    ax.legend(frameon=False, fontsize=7.5, loc="center left", bbox_to_anchor=(1.01, 0.5))
     ax.set_title("GIN validation curves", fontsize=9)
     fig.tight_layout(); fig.savefig(os.path.join(FIG, "curves_gin.pdf")); plt.close(fig)
 
@@ -193,12 +195,17 @@ def extrap_table():
              f"{100*base['ridge_hepp']['test']['mrel']:.2f} & "
              f"{base['ridge_hepp']['test']['r2_within']:.4f} \\\\", r"\midrule"]
     rows = []
-    for p in sorted(glob.glob(os.path.join(ROOT, "results", "runs", "*_extrap.json"))):
+    for p in sorted(glob.glob(os.path.join(ROOT, "results", "runs", "*_extrap*.json"))):
         r = json.load(open(p)); c = r["config"]
-        rows.append((c["model"], c["features"], r["test"]["mrel"], r["test"]["r2_within"]))
+        rows.append((c["model"], c["features"], bool(c.get("resid_L")),
+                     r["test"]["mrel"], r["test"]["r2_within"]))
     order = {m: i for i, m in enumerate(["gcn", "sage", "gin"])}
-    for m, f, e, r2 in sorted(rows, key=lambda t: (FEATS.index(t[1]), order[t[0]])):
-        lines.append(f"{NAMES[m]} + {FEAT_NAMES[f]} & {100*e:.2f} & {r2:.4f} \\\\")
+    for resid in (False, True):
+        if resid:
+            lines.append(r"\midrule\multicolumn{3}{l}{\emph{GNN predicts residual of linear fit on $L$}} \\")
+        for m, f, _, e, r2 in sorted([t for t in rows if t[2] == resid],
+                                     key=lambda t: (FEATS.index(t[1]), order[t[0]])):
+            lines.append(f"{NAMES[m]} + {FEAT_NAMES[f]} & {100*e:.1f} & {r2:.3f} \\\\")
     with open(os.path.join(ROOT, "milestone", "table_extrap.tex"), "w") as fh:
         fh.write("\n".join(lines) + "\n")
     print("\n".join(lines))

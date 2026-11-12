@@ -1,0 +1,6 @@
+sage_cycle+lap+rwse_s0_extrap_resid.json: test mae_log=0.0419 mrel=0.0431 r2_within=0.991 (89s)
+sage_rwse_s0_extrap_resid.json: test mae_log=0.1018 mrel=0.1090 r2_within=0.952 (89s)
+gin_rwse_s0_extrap_resid.json: test mae_log=0.2697 mrel=0.3234 r2_within=0.667 (99s)
+gin_cycle+lap+rwse_s0_extrap_resid.json: test mae_log=0.0504 mrel=0.0516 r2_within=0.985 (101s)
+gcn_rwse_s0_extrap_resid.json: test mae_log=0.3154 mrel=0.4327 r2_within=0.368 (108s)
+gcn_cycle+lap+rwse_s0_extrap_resid.json: test mae_log=0.0705 mrel=0.0699 r2_within=0.973 (110s)

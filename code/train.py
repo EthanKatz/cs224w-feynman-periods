@@ -91,12 +91,12 @@ def metrics(pred_log: np.ndarray, y_log: np.ndarray, loops: np.ndarray) -> dict:
 
 
 @torch.no_grad()
-def predict(model, loader, features, mu, sd):
+def predict(model, loader, features, mu, sd, lin=(0.0, 0.0)):
     model.eval()
     preds, ys, loops = [], [], []
     for b in loader:
         out = model(node_features(b, features, False), b.edge_index, b.batch)
-        preds.append(out * sd + mu)
+        preds.append(out * sd + mu + lin[0] * b.loops + lin[1])
         ys.append(b.y)
         loops.append(b.loops)
     return (torch.cat(preds).numpy(), torch.cat(ys).numpy(), torch.cat(loops).numpy())
@@ -116,6 +116,13 @@ def run(args) -> dict:
         rng = np.random.default_rng(args.seed)
         tr = rng.choice(tr, int(len(tr) * args.train_frac), replace=False)
     y_tr = torch.cat([data[i].y for i in tr])
+    # Optional: learn only the residual of a linear-in-L fit, so the network does
+    # not have to extrapolate the (trivial) exponential growth of P with L itself.
+    lin = (0.0, 0.0)
+    if args.resid_L:
+        L_tr = np.array([int(data[i].loops) for i in tr])
+        lin = tuple(float(c) for c in np.polyfit(L_tr, y_tr.numpy(), 1))
+        y_tr = y_tr - (lin[0] * torch.from_numpy(L_tr).float() + lin[1])
     mu, sd = float(y_tr.mean()), float(y_tr.std())
 
     loader = lambda idx, shuffle: DataLoader([data[i] for i in idx], batch_size=args.batch,
@@ -135,12 +142,13 @@ def run(args) -> dict:
         for b in tr_loader:
             opt.zero_grad()
             out = model(node_features(b, features, True), b.edge_index, b.batch)
-            loss = F.mse_loss(out, (b.y - mu) / sd)
+            target = b.y - (lin[0] * b.loops + lin[1])
+            loss = F.mse_loss(out, (target - mu) / sd)
             loss.backward()
             opt.step()
             tot += loss.item() * b.num_graphs
         sched.step()
-        p, y, l = predict(model, va_loader, features, mu, sd)
+        p, y, l = predict(model, va_loader, features, mu, sd, lin)
         val_mae = float(np.abs(p - y).mean())
         history.append({"epoch": epoch, "train_mse_std": tot / len(tr), "val_mae_log": val_mae})
         if val_mae < best:  # model selection on validation MAE of log P
@@ -154,7 +162,7 @@ def run(args) -> dict:
     res = {"config": vars(args), "n_params": sum(p.numel() for p in model.parameters()),
            "train_time_s": time.time() - t0, "history": history}
     for name, ld in [("val", va_loader), ("test", te_loader)]:
-        p, y, l = predict(model, ld, features, mu, sd)
+        p, y, l = predict(model, ld, features, mu, sd, lin)
         res[name] = metrics(p, y, l)
         if name == "test":
             res["test_pred"] = {"pred": p.tolist(), "y": y.tolist(), "loops": l.tolist()}
@@ -176,6 +184,8 @@ def main():
     ap.add_argument("--split_seed", type=int, default=0)
     ap.add_argument("--max_loops", type=int, default=12)
     ap.add_argument("--split", default="grouped", choices=["grouped", "extrap"])
+    ap.add_argument("--resid_L", action="store_true",
+                    help="predict residual of a linear fit of log P on L")
     ap.add_argument("--train_frac", type=float, default=1.0)
     ap.add_argument("--threads", type=int, default=1)
     ap.add_argument("--tag", default="")

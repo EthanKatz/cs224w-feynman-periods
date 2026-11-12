@@ -1,1 +1,23 @@
-x & 1 & 2 \\
+Linear regression on $L$ & 48.3 & -0.0067 \\
+Ridge on $L$ + graph-level cycle counts & 19.7 & 0.8465 \\
+Ridge on $L$ + $\log$ Hepp bound$^\dagger$ & 0.65 & 0.9997 \\
+\midrule
+GCN + canonical label & 41.0 & -0.589 \\
+GraphSAGE + canonical label & 57.6 & -1.937 \\
+GIN + canonical label & 36.0 & -0.078 \\
+GCN + RWSE & 30.5 & 0.702 \\
+GraphSAGE + RWSE & 9.6 & 0.937 \\
+GIN + RWSE & 41.0 & -0.165 \\
+GCN + cycle & 52.7 & -1.087 \\
+GraphSAGE + cycle & 55.8 & -1.391 \\
+GIN + cycle & 53.5 & -1.221 \\
+GCN + cycle+LapPE+RWSE & 44.2 & -0.310 \\
+GraphSAGE + cycle+LapPE+RWSE & 34.2 & 0.314 \\
+GIN + cycle+LapPE+RWSE & 29.6 & 0.511 \\
+\midrule\multicolumn{3}{l}{\emph{GNN predicts residual of linear fit on $L$}} \\
+GCN + RWSE & 43.3 & 0.368 \\
+GraphSAGE + RWSE & 10.9 & 0.952 \\
+GIN + RWSE & 32.3 & 0.667 \\
+GCN + cycle+LapPE+RWSE & 7.0 & 0.973 \\
+GraphSAGE + cycle+LapPE+RWSE & 4.3 & 0.991 \\
+GIN + cycle+LapPE+RWSE & 5.2 & 0.985 \\

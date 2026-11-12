@@ -3,7 +3,7 @@
 \caption{Test results on the grouped split (9{,}333 test graphs, mostly $L=11,12$). MRE = mean
 relative error of $\mathcal{P}$ in \% (mean $\pm$ std over 2 seeds for GNNs); $R^2_{\text{w}}$ = within-loop $R^2$
 of $\log\mathcal{P}$. $^\dagger$Uses the Hepp bound, an expensive input, so it is a reference
-rather than a competitor.}
+rather than a competitor. Constant-feature GNNs are trained without BatchNorm.}
 \label{tab:main}
 \begin{tabular}{lcc}
 \toprule
@@ -31,9 +31,10 @@ Node features & MRE (\%) & $R^2_{\text{w}}$ & MRE (\%) & $R^2_{\text{w}}$ & MRE 
 \includegraphics[width=\linewidth]{../figures/ablation.pdf}
 \vspace{-1.8em}
 \caption{Node-feature ablation (log scale; error bars are $\pm$1 std over 2 seeds). Dashed and
-dotted lines show the non-GNN baselines. Structure-free inputs (constant, random) stay near or
-above the linear-in-$L$ baseline, while every structural encoding beats ridge regression on the
-same cycle information by $2.4$--$7.5\times$.}
+dotted lines show the non-GNN baselines. Constant features cannot beat the linear-in-$L$ baseline
+and Gaussian random features barely do; random one-hot labels already help (3--5\%), and every
+explicit structural encoding beats ridge regression on the same cycle information by
+$2.4$--$7.5\times$.}
 \label{fig:ablation}
 \end{figure}
 
@@ -50,14 +51,20 @@ ridge regression on graph-level cycle counts. Right: the best GNN by validation 
 Table~\ref{tab:main} and Figure~\ref{fig:ablation} summarize all runs; the main findings follow.
 
 \paragraph{1. Structure-free GNNs cannot beat linear regression, as theory predicts.}
-\CONSTTEXT{} Random node features (RNI, and random one-hot labels \PERMTEXT) break the symmetry
-but must be averaged over at test time, and they reach only 26--30\% MRE (within-loop
-$R^2\approx0.5$--$0.6$). This reproduces, in a controlled way, the observation that GNNs on arbitrary
-vertex labels do not beat simple regression.
+With constant node features all three architectures reach 42.3--42.6\% MRE and a within-loop $R^2$
+of $-0.03$. That is the per-loop-mean predictor, exactly as the 1-WL argument of
+Section~4 requires: no amount of message passing extracts structure from a regular graph with
+featureless nodes. Gaussian random features (RNI) break the symmetry but only reach 26--30\% MRE.
+\emph{Random one-hot labels} (a fresh random permutation at every forward pass) do much
+better, at 3.0--4.9\%. Our interpretation is that one-hot labels from a small alphabet act as unique node
+identifiers: a node can recognize its own label returning after $k$ hops and thus implicitly count
+cycles, which continuous Gaussian noise makes much harder to learn. Arbitrary labels are therefore
+not hopeless, but they need test-time randomness, are not invariant, and remain about $3\times$ worse than
+explicit structural features.
 
 \paragraph{2. Structural node features are what make GNNs work.} Every structural encoding gives
 1--3\% MRE and within-loop $R^2>0.994$. The best configuration, cycle participation + LapPE + RWSE,
-reaches \textbf{0.98\,$\pm$\,0.05\%} MRE with GraphSAGE and 1.02\% with GIN, which is $47\times$ better than linear
+reaches \textbf{0.97\,$\pm$\,0.05\%} MRE with GraphSAGE and 1.02\% with GIN, which is $47\times$ better than linear
 regression on $L$ and $7.5\times$ better than ridge regression on the \emph{same} cycle counts pooled to
 graph level (7.3\%). Message passing over per-node cycle participation therefore extracts far
 more than the graph-level counts that earlier work used (Fig.~\ref{fig:scatter}). The three
@@ -85,7 +92,15 @@ feature (it is $\sim$1.6$\times$ worse), although it needs only per-node cycle c
 comparison, label noise is negligible (median relative uncertainty of the $L=12$ periods is
 $6\times10^{-5}$). Table~\ref{tab:extrap} reports a harder and practically more relevant setting:
 training only on $L\le 11$ (about 11k graphs) and predicting all 81{,}305 graphs at $L=12$.
-\EXTRAPTEXT
+Out of the box, every GNN fails to extrapolate (30--58\% MRE, often worse than linear regression),
+while ridge on cycle counts degrades more gracefully (19.7\%). The diagnosis is that the networks
+must extrapolate the large, trivial growth of $\log\mathcal{P}$ with $L$ through sum-pooled
+embeddings of a graph size they have never seen. A one-line change fixes this: subtracting a linear
+fit of $\log\mathcal{P}$ on $L$ and training the GNN on the residual (\texttt{--resid\_L}). With it,
+GraphSAGE + cycle+LapPE+RWSE predicts the unseen $L=12$ periods with \textbf{4.3\%} MRE
+(within-loop $R^2=0.991$), $4.6\times$ better than ridge regression, using only $\sim$10k training graphs.
+This is the most encouraging result for the real use case of predicting high-loop periods from
+cheaper low-loop data.
 
 \begin{table}[t]
 \centering\small
@@ -105,15 +120,17 @@ Model & MRE (\%) & $R^2_{\text{w}}$\\
 evaluation time (MRE $\to\infty$). The cause is degenerate batch statistics, and we re-ran these
 controls without normalization. (ii) Our first attempt stored the label feature under a name
 containing \texttt{index}, which PyG silently treats as an index tensor and offsets during batching.
-(iii) Hyper-parameters (width 64, depth 4, 40 epochs) are untuned, and validation error was still
-falling at the end of training for the best models (Fig.~\ref{fig:curves}), so all GNN numbers are
-likely pessimistic.
+(iii) Hyper-parameters (width 64, depth 4, 40 epochs) are untuned. Validation error is noisy at
+the initial learning rate and drops as the cosine schedule anneals, and for every run the best
+checkpoint lies within the last five epochs (Fig.~\ref{fig:curves}), so longer training will likely
+improve all GNN numbers.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.48\linewidth]{../figures/curves_gin.pdf}
+\includegraphics[width=0.85\linewidth]{../figures/curves_gin.pdf}
 \vspace{-0.8em}
-\caption{Validation MAE of $\log\mathcal{P}$ during training (GIN, seed 0). Structural features
-converge quickly and are still improving at epoch 40.}
+\caption{Validation MAE of $\log\mathcal{P}$ during training (GIN, seed 0). Curves are noisy at
+the initial learning rate and settle as the cosine schedule anneals; the constant-feature
+control stays flat at the per-loop-mean level throughout.}
 \label{fig:curves}
 \end{figure}

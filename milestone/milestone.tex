@@ -23,15 +23,64 @@
 \noindent\textbf{Members:} Ethan Katz, Evelyn Song, Colin McKhann\\
 \textbf{Project Type:} Real-world applications of GNNs
 
-\section*{1\quad Problem and Motivation}
+\section*{1\quad Physical Background}
 
-The primitive contribution to the $\beta$ function of $\phi^4$-theory is a sum over Feynman periods,
+\paragraph{Why the $\beta$ function matters.} In quantum field theory the strength of an interaction
+is not fixed: the coupling $g$ depends on the energy scale $\mu$ at which it is probed. The $\beta$
+function describes this running,
+\begin{equation*}
+\beta(g) = \frac{dg}{d\log\mu}.
+\end{equation*}
+It is what connects a measurement at one energy to a prediction at another. Its zeros are fixed
+points that describe systems at continuous phase transitions, and its slopes there give universal
+\emph{critical exponents}, such as those of a magnet at its Curie point or a fluid at its liquid--gas
+critical point. $\phi^4$-theory is the standard model for these phenomena, and its $\beta$ function
+yields some of the most precise predictions in field theory \citep{wilson1974rg,kompaniets2017sixloop}.
+In practice $\beta$ is computed as a perturbative series,
+\begin{equation*}
+\beta(g) = \sum_{L\ge1} \beta_L\, g^{L+1},
+\end{equation*}
+whose coefficients grow factorially with the loop number $L$. Extracting accurate numbers therefore
+requires resummation, which in turn needs knowledge of the coefficients at large $L$.
+
+\paragraph{How periods enter.} The $L$-loop coefficient $\beta_L$ is a sum over Feynman graphs with
+$L$ loops. Each \emph{primitive} (subdivergence-free) graph $G$ contributes a single number, its
+\emph{period}
 \begin{equation*}
 \mathcal{P}(G) = \int_{\alpha_e>0} \prod_{e\in E} d\alpha_e\,
 \frac{\delta\big(1-\sum_{e\in E}\alpha_e\big)}{\psi_G(\alpha)^2},\qquad
 \psi_G(\alpha)=\sum_{T\text{ spanning tree}}\ \prod_{e\notin T}\alpha_e ,
 \end{equation*}
-one per primitive (subdivergence-free) graph $G$. The number of graphs grows factorially with the
+weighted by its symmetry factor, so that up to combinatorial normalization
+\begin{equation*}
+\beta_L^{\text{prim}} \;\propto \sum_{\text{primitive } G,\ L\text{ loops}} \frac{\mathcal{P}(G)}{|\mathrm{Aut}(G)|}.
+\end{equation*}
+Periods do not depend on the renormalization scheme, which makes them clean, well-defined targets.
+Non-primitive graphs contain nested divergences and require further subtractions; we do not treat them.
+
+\paragraph{How amplitudes fit in.} An amplitude is the quantum probability amplitude of a scattering
+process, obtained by summing Feynman graphs. Schematically, after renormalization a primitive graph
+contributes
+\begin{equation*}
+\mathcal{A}_G(p) \;=\; \mathcal{P}(G)\,\log\!\left(\frac{p^2}{\mu^2}\right) \;+\; c_G,
+\qquad
+\mathcal{A}(p) \;=\; \sum_{G} \frac{g^{L+1}}{|\mathrm{Aut}(G)|}\,\mathcal{A}_G(p),
+\end{equation*}
+where $p$ is the scattering momentum and $c_G$ a scheme-dependent finite part. The period is thus the
+coefficient of the logarithm: it sets how strongly the graph's contribution changes with energy.
+The $\beta$ function collects exactly these coefficients, and the renormalization-group
+(Callan--Symanzik) equation then uses $\beta$ to fix the energy dependence of the full amplitude.
+Predicting periods therefore does \emph{not} yield complete amplitudes (it misses the finite parts
+$c_G$ and the non-primitive graphs), but it targets their universal, expensive core.
+
+\paragraph{Implication for evaluation.} Physical applications need \emph{sums} of periods over many
+graphs. Random per-graph errors largely cancel in such sums, whereas a systematic bias does not. This
+makes errors in the overall level of the predictions, as arise when extrapolating to a new loop
+order (Section~5), particularly important.
+
+\section*{2\quad Problem and Motivation}
+
+The number of primitive graphs grows factorially with the
 loop number $L$, and each period is an expensive numerical integral, so a cheap and accurate
 predictor of $\mathcal{P}(G)$ from the graph alone would directly reduce the cost of high-order QFT
 calculations. \citet{balduf2024predicting} showed that structural invariants (notably the
@@ -42,15 +91,20 @@ labels, never beat linear regression. Our project asks whether message-passing G
 
 \paragraph{Milestone summary.} We built a complete, reproducible pipeline (download $\to$ parse
 $\to$ PyG \texttt{Data} $\to$ grouped splits $\to$ training/evaluation of GCN, GraphSAGE and GIN
-$\to$ non-GNN baselines), trained 48 GNN models (3 architectures $\times$ 8 node-feature sets
-$\times$ 2 seeds) on all 92{,}680 primitive graphs with $3\le L\le 12$, and ran the ablation of our
-proposed novelty: structural node features versus constant or arbitrary features.
-\RESULTSUMMARY
+$\to$ non-GNN baselines), and trained 54 GNN models (3 architectures $\times$ 9 node-feature sets
+$\times$ 2 seeds) on all 92{,}680 primitive graphs with $3\le L\le 12$, plus 18 runs of a loop-order
+extrapolation experiment. Together these form the ablation of our proposed novelty: structural
+node features versus constant or arbitrary ones. Headline results: (i) as predicted by a 1-WL
+argument, GNNs with constant features are no better than linear regression on $L$ (42\% vs.\ 46\%
+mean relative error); (ii) with per-node cycle participation, Laplacian and random-walk encodings,
+GNNs reach \textbf{0.97\%} mean relative error, $7.5\times$ better than ridge regression on the
+same cycle counts; (iii) trained only on $L\le11$, the best GNN predicts unseen 12-loop periods with
+4.3\% error, once it is asked to predict the residual of a linear fit in $L$. The expensive Hepp bound
+remains a stronger single predictor (0.6\%).
 
-\section*{2\quad Dataset and Processing}
+\section*{3\quad Dataset and Processing}
 
-\paragraph{Source.} We use the public dataset of \citet{balduf2024dataset} (Borealis Dataverse,
-doi:10.5683/SP3/NLEDGH, CC-BY 4.0), which accompanies \citet{balduf2024predicting} and
+\paragraph{Source.} We use the public dataset of \citet{balduf2024dataset} (Borealis Dataverse, CC-BY 4.0), which accompanies \citet{balduf2024predicting} and
 \citet{balduf2023statistics}. File \texttt{periods\_L.csv} lists one graph per line, with its
 numerical period, its uncertainty, the Hepp bound and further invariants. The dataset is
 \emph{complete} up to $L=13$ and a non-uniform sample for $14\le L\le 18$.
@@ -63,8 +117,8 @@ edge-list column into an undirected \texttt{edge\_index}, assert 4-regularity, a
 $y=\log\mathcal{P}(G)$ as the regression target, since periods span several orders of magnitude
 (Fig.~\ref{fig:data}a) and errors in $\log\mathcal{P}$ are relative errors in $\mathcal{P}$. For
 the milestone we use $3\le L\le 12$ (Table~\ref{tab:data}); $L=12$ alone contributes 81{,}305
-graphs of 14 vertices and 28 edges each. The $L=13$ file (94\,MB compressed, $\approx$0.9M graphs)
-is the next step.
+graphs of 14 vertices and 28 edges each. The complete $L=13$ file (94\,MB
+compressed) is the next step.
 
 \begin{table}[h]
 \centering\small
@@ -97,7 +151,7 @@ as observed by \citet{balduf2024predicting}.}
 \label{fig:data}
 \end{figure}
 
-\section*{3\quad Model Design and Metrics}
+\section*{4\quad Model Design and Metrics}
 
 \paragraph{Architectures.} All GNNs share one skeleton so that only the message-passing operator
 varies: a linear node encoder, $K=4$ message-passing layers of width 64 (each followed by
@@ -126,7 +180,7 @@ forward pass, i.e.\ genuinely arbitrary vertex labels as used by earlier GNNs;
 \item \textbf{canonical label}: one-hot of the vertex label \emph{as stored in the dataset}. These
 labels are nauty's canonical form, so together with the edges they identify the graph up to
 isomorphism. This is not equivariant, but it is a strong structural signal rather than noise (see
-Section~4);
+Section~5);
 \item \textbf{random (RNI)}: 8 i.i.d.\ Gaussian features resampled every forward pass
 \citep{sato2021rni,abboud2021rni};
 \item \textbf{cycle participation} (ours): $c_k(v)=\#\{\text{simple cycles of length }k\text{ through }v\}$
@@ -156,11 +210,11 @@ true $\log\mathcal{P}$ of the graph's loop order. Ordinary $R^2$ is inflated by 
 dependence on $L$; within-loop $R^2$ measures how much of the genuinely hard, within-$L$ variance is
 explained (0 for the linear-in-$L$ baseline).
 
-\section*{4\quad Preliminary Results}
+\section*{5\quad Preliminary Results}
 
 \input{results_section}
 
-\section*{5\quad Next Steps}
+\section*{6\quad Next Steps}
 
 \input{nextsteps_section}
 
@@ -206,10 +260,20 @@ T.~N.~Kipf and M.~Welling.
 \newblock Semi-supervised classification with graph convolutional networks.
 \newblock In \emph{ICLR}, 2017.
 
+\bibitem[Kompaniets and Panzer(2017)]{kompaniets2017sixloop}
+M.~V.~Kompaniets and E.~Panzer.
+\newblock Minimally subtracted six-loop renormalization of $O(n)$-symmetric $\phi^4$ theory and critical exponents.
+\newblock \emph{Phys.\ Rev.\ D}, 96:036016, 2017. arXiv:1705.06483.
+
 \bibitem[Sato et~al.(2021)]{sato2021rni}
 R.~Sato, M.~Yamada, and H.~Kashima.
 \newblock Random features strengthen graph neural networks.
 \newblock In \emph{SDM}, 2021.
+
+\bibitem[Wilson and Kogut(1974)]{wilson1974rg}
+K.~G.~Wilson and J.~Kogut.
+\newblock The renormalization group and the $\epsilon$ expansion.
+\newblock \emph{Physics Reports}, 12(2):75--199, 1974.
 
 \bibitem[Xu et~al.(2019)]{xu2019gin}
 K.~Xu, W.~Hu, J.~Leskovec, and S.~Jegelka.
